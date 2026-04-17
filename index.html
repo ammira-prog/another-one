@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sealed Scroll</title>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{
+margin:0;padding:0;min-height:100%;
+background:radial-gradient(circle at top,#2b1a0d 0%,#120904 60%,#090402 100%);
+color:#f6e7c7;font-family:Georgia,serif;
+-webkit-user-select:none;user-select:none;
+}
+body{display:flex;justify-content:center;}
+
+.container{width:100%;max-width:460px;padding:40px 20px;text-align:center;}
+
+h1{margin:0 0 10px;font-size:20px;line-height:1.25;}
+.sub{font-size:13px;line-height:1.5;opacity:.85;margin-bottom:22px;}
+
+.phrase-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:20px;}
+.slot,.letter{
+display:flex;align-items:center;justify-content:center;
+border:1px solid rgba(236,199,118,.35);
+background:rgba(255,220,150,.08);
+color:#f6e7c7;border-radius:14px;cursor:pointer;
+}
+.slot{width:50px;height:60px;font-size:24px;}
+.space{width:16px;height:60px;}
+
+.selected{box-shadow:0 0 14px rgba(255,215,140,.4);}
+.solved{opacity:.7;}
+
+.decoded{min-height:30px;margin:10px 0;font-size:18px;letter-spacing:2px;}
+#hint{font-size:13px;opacity:.8;margin-bottom:14px;}
+
+.letters{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+.letter{height:50px;font-size:20px;}
+
+button{
+margin-top:12px;padding:14px 24px;border-radius:999px;border:none;
+background:linear-gradient(135deg,#d9b14a,#f7e6b2);
+color:#3d2a12;font-family:Georgia,serif;cursor:pointer;
+}
+
+.hidden{display:none;}
+
+.scroll{
+margin:28px auto 0;padding:24px;
+max-width:360px;background:#f6ebc8;color:#4a3219;
+border-radius:16px;line-height:1.8;white-space:pre-line;
+text-align:left;font-size:15px;
+}
+
+.overlay{
+position:fixed;inset:0;
+display:flex;align-items:center;justify-content:center;
+background:radial-gradient(circle at top,#2b1a0d 0%,#120904 60%,#090402 100%);
+z-index:9999;
+padding:24px;
+text-align:center;
+}
+
+.overlay-box{
+max-width:360px;
+padding:28px 24px;
+border:1px solid rgba(236,199,118,.35);
+border-radius:20px;
+background:rgba(255,220,150,.08);
+box-shadow:0 0 24px rgba(0,0,0,.25);
+}
+
+.overlay h2{
+margin:0 0 10px;
+font-size:22px;
+font-weight:normal;
+}
+
+.overlay p{
+margin:0 0 18px;
+font-size:14px;
+line-height:1.6;
+opacity:.85;
+}
+</style>
+</head>
+
+<body>
+
+<div id="startOverlay" class="overlay">
+  <div class="overlay-box">
+    <h2>sealed chamber</h2>
+    <p>tap below to enter and awaken the hidden inscription</p>
+    <button id="enterBtn">tap to enter</button>
+  </div>
+</div>
+
+<div class="container">
+<h1>traveler... decode the ancient inscription</h1>
+
+<div class="sub">
+each sacred symbol stands for a letter.<br>
+tap a symbol, then choose the letter you think it represents.
+</div>
+
+<div id="grid" class="phrase-grid"></div>
+<div id="decoded" class="decoded"></div>
+<div id="hint">begin whenever you're ready</div>
+<div id="letters" class="letters"></div>
+
+<button id="unlock" class="hidden">open the sealed scroll...</button>
+
+<div id="scroll" class="scroll hidden">dearest michael,
+
+i’ve been learning to appreciate what we have right now, while staying hopeful for what october might reveal.
+
+i’m genuinely happy with our banters, our sweet exchanges, and even the quiet pauses in between.
+i always look forward to your messages… but i’ve also come to appreciate the silence sometimes, because it lets me miss you in a way that feels strangely gentle.
+
+i see your efforts. i notice the little things.
+your presence is something i don’t take lightly — it’s comforting, steady, and still manages to make me smile in that soft, unexpected way.
+
+do i have doubts? sometimes, yeah.
+but somehow, no matter how much i try to pull back, something in me still keeps choosing you.
+
+i don’t know exactly what october will reveal for us yet.
+but i do know that what’s been real between us has meant a lot to me.
+
+and whatever happens… please know this:
+you are genuinely, gently loved and cared for — sincerely and with all my heart.
+
+always,
+ammira 🫶🏻</div>
+</div>
+
+<audio id="bg" loop preload="auto">
+  <source src="https://cdn.pixabay.com/download/audio/2022/10/25/audio_9464b47cb2.mp3?filename=ancient-mystery-ambient-124008.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="tap" preload="auto">
+  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c7e7b7a.mp3?filename=click-124467.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="success" preload="auto">
+  <source src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_6c4b4e.mp3?filename=success-1-6297.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="open" preload="auto">
+  <source src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_c8c8a73467.mp3?filename=magic-spell-6005.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const phrase="SEEK THE HIDDEN TRUTH";
+
+const symbols={
+S:"𓋴",E:"𓂀",K:"𓎡",T:"𓏏",H:"𓉔",
+I:"𓇋",D:"𓆓",N:"𓈖",R:"𓂋",U:"𓅱"
+};
+
+const letters=Object.keys(symbols);
+
+const grid=document.getElementById("grid");
+const decoded=document.getElementById("decoded");
+const lettersDiv=document.getElementById("letters");
+const unlock=document.getElementById("unlock");
+const hint=document.getElementById("hint");
+const scroll=document.getElementById("scroll");
+const startOverlay=document.getElementById("startOverlay");
+const enterBtn=document.getElementById("enterBtn");
+
+const bg=document.getElementById("bg");
+const tap=document.getElementById("tap");
+const success=document.getElementById("success");
+const open=document.getElementById("open");
+
+bg.volume=.25;
+tap.volume=.5;
+success.volume=.55;
+open.volume=.45;
+
+let active=null;
+let solved=phrase.split("").map(c=>c===" "?" ":"_");
+let audioReady=false;
+let completed=false;
+
+function playSound(s){
+  if(!audioReady) return;
+  s.currentTime=0;
+  s.play().catch(()=>{});
+}
+
+function startAudio(){
+  if(audioReady) return;
+  audioReady=true;
+  bg.play().catch(()=>{});
+}
+
+enterBtn.onclick=()=>{
+  startAudio();
+  playSound(tap);
+  startOverlay.classList.add("hidden");
+};
+
+phrase.split("").forEach((c,i)=>{
+  if(c===" "){
+    let sp=document.createElement("div");
+    sp.className="space";
+    grid.appendChild(sp);
+    return;
+  }
+
+  let d=document.createElement("div");
+  d.className="slot";
+  d.dataset.i=i;
+  d.dataset.l=c;
+  d.textContent=symbols[c];
+
+  d.onclick=()=>{
+    document.querySelectorAll(".slot").forEach(s=>s.classList.remove("selected"));
+    d.classList.add("selected");
+    active=d;
+    hint.textContent="now choose the matching letter";
+    playSound(tap);
+  };
+
+  grid.appendChild(d);
+});
+
+letters.forEach(l=>{
+  let d=document.createElement("div");
+  d.className="letter";
+  d.textContent=l;
+
+  d.onclick=()=>{
+    if(!active) return;
+    playSound(tap);
+
+    if(active.dataset.l===l){
+      solved[active.dataset.i]=l;
+      active.classList.add("solved");
+      active.classList.remove("selected");
+      active=null;
+      hint.textContent="correct...";
+      update();
+    }else{
+      hint.textContent="not quite... try again";
+    }
+  };
+
+  lettersDiv.appendChild(d);
+});
+
+function update(){
+  decoded.textContent=solved.join("");
+  if(!completed && solved.join("")===phrase){
+    completed=true;
+    unlock.classList.remove("hidden");
+    hint.textContent="the inscription is complete...";
+    playSound(success);
+  }
+}
+
+unlock.onclick=()=>{
+  playSound(tap);
+  scroll.classList.remove("hidden");
+  unlock.classList.add("hidden");
+  hint.textContent="the sealed scroll opens...";
+  setTimeout(()=>playSound(open),120);
+};
+
+update();
+</script>
+
+</body>
+</html>
